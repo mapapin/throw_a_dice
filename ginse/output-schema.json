@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["diceType", "values", "count", "proof"],
+  "properties": {
+    "diceType": { "const": "d6" },
+    "values": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 8,
+      "items": { "type": "integer", "minimum": 1, "maximum": 6 }
+    },
+    "count": { "type": "integer", "minimum": 1, "maximum": 8 },
+    "proof": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$",
+      "description": "SHA-256 proof binding the durable operation to its result."
+    }
+  }
+}

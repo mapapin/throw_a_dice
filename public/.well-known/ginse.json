@@ -1,0 +1,80 @@
+{
+  "schema_version": "2",
+  "slug": "ginse-dice-diceproof",
+  "display_name": "Ginse Dice — DICEPROOF",
+  "description": "Roll up to eight cryptographically derived six-sided dice and receive a result-bound SHA-256 proof.",
+  "presentation": {
+    "action": "Roll cryptographic D6",
+    "input": {
+      "label": "Dice count",
+      "icon": "number"
+    },
+    "output": {
+      "label": "Verifiable dice result",
+      "icon": "table"
+    }
+  },
+  "price": {
+    "amount_cents": 100,
+    "currency": "EUR"
+  },
+  "run_url": "https://ginse-dice.onrender.com/run",
+  "input_schema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "required": [
+      "count"
+    ],
+    "properties": {
+      "count": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 8,
+        "description": "Number of six-sided dice to roll."
+      }
+    }
+  },
+  "output_schema": {
+    "type": "object",
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "required": [
+      "diceType",
+      "values",
+      "count",
+      "proof"
+    ],
+    "properties": {
+      "diceType": {
+        "const": "d6"
+      },
+      "values": {
+        "type": "array",
+        "minItems": 1,
+        "maxItems": 8,
+        "items": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 6
+        }
+      },
+      "count": {
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 8
+      },
+      "proof": {
+        "type": "string",
+        "pattern": "^[a-f0-9]{64}$",
+        "description": "SHA-256 proof binding the durable operation to its result."
+      }
+    }
+  },
+  "example": {
+    "input": {
+      "count": 2
+    }
+  },
+  "ownership_token": "ginse_verify_2d65632200484b5099a95ca2be975c85"
+}
