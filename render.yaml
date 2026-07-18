@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: ginse-dice
+    runtime: docker
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: API_KEY
+        generateValue: true

@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="fr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f2ff55" />
+    <title>Ginse Dice — du vrai hasard, capturé</title>
+    <meta name="description" content="Lancez de vrais dés. La caméra lit les faces et publie un résultat exploitable par une machine." />
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <header class="nav">
+      <a class="brand" href="#" aria-label="Ginse Dice, accueil"><span class="brand-mark">G</span><span>GINSE / DICE</span></a>
+      <div class="live"><i></i> SYSTÈME PRÊT</div>
+    </header>
+
+    <main>
+      <section class="intro">
+        <p class="eyebrow">RANDOMNESS, MADE REAL</p>
+        <h1>LE HASARD<br /><em>PREND FORME.</em></h1>
+        <p class="lede">Lancez de vrais dés. Notre vision lit les faces, vérifie la capture et transforme le monde réel en données.</p>
+      </section>
+
+      <section class="workspace" aria-label="Scanner de dés">
+        <div class="controls">
+          <div class="step-label"><span>01</span> TÉLÉPHONE CAMÉRA</div>
+          <label for="diceType">TYPE DE DÉ</label>
+          <div class="select-wrap">
+            <select id="diceType">
+              <option value="d6">D6 — points</option>
+              <option value="d4" disabled>D4 — bientôt</option>
+              <option value="d8" disabled>D8 — bientôt</option>
+              <option value="d20" disabled>D20 — bientôt</option>
+            </select>
+          </div>
+
+          <label for="diceCount">NOMBRE DE DÉS</label>
+          <div class="counter">
+            <button id="minus" aria-label="Retirer un dé">−</button>
+            <output id="countValue" for="diceCount">2</output>
+            <button id="plus" aria-label="Ajouter un dé">+</button>
+            <input id="diceCount" type="range" min="1" max="8" value="2" tabindex="-1" aria-hidden="true" />
+          </div>
+
+          <div class="tips">
+            <strong>POUR UNE BONNE LECTURE</strong>
+            <p>Surface unie · lumière diffuse · dés espacés · caméra stable</p>
+          </div>
+        </div>
+
+        <div class="scanner">
+          <div class="scanner-head">
+            <div class="step-label"><span>02</span> CAPTURER</div>
+            <span id="cameraStatus" class="status">CAMÉRA ÉTEINTE</span>
+          </div>
+          <div class="viewport" id="viewport">
+            <video id="video" playsinline muted></video>
+            <canvas id="canvas"></canvas>
+            <div class="frame-corner tl"></div><div class="frame-corner tr"></div>
+            <div class="frame-corner bl"></div><div class="frame-corner br"></div>
+            <div id="emptyState" class="empty-state">
+              <div class="die-icon" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
+              <strong>PLACEZ LES DÉS DANS LE CADRE</strong>
+              <span>La détection se fait sur votre appareil.</span>
+            </div>
+          </div>
+          <div class="actions">
+            <button class="primary" id="cameraButton"><span>ACTIVER LA CAMÉRA</span><b>↗</b></button>
+            <button class="capture" id="captureButton" disabled>DÉTECTION AUTO ACTIVE</button>
+          </div>
+          <p id="message" class="message" role="status"></p>
+        </div>
+      </section>
+
+      <section class="result-panel" id="resultPanel" aria-live="polite">
+        <div>
+          <div class="step-label"><span>03</span> RÉSULTAT VÉRIFIÉ</div>
+          <p id="resultMeta">Aucun tirage capturé</p>
+        </div>
+        <div id="resultDice" class="result-dice"><span class="placeholder">—</span></div>
+        <div class="machine-output">
+          <span>SORTIE MACHINE</span>
+          <code id="jsonOutput">[]</code>
+          <button id="copyButton" disabled>COPIER</button>
+        </div>
+      </section>
+    </main>
+
+    <footer><span>GINSE.AI © 2026</span><span>CAMERA → VISION → JSON</span><span><a href="/watch.html">OUVRIR LA RÉGIE ↗</a></span></footer>
+    <script type="module" src="/app.bundle.js"></script>
+  </body>
+</html>

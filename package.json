@@ -1,0 +1,23 @@
+{
+  "name": "ginse-true-random-dice",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "esbuild public/app.js --bundle --platform=browser --format=esm --alias:fs=./scripts/browser-shim.js --alias:path=./scripts/browser-shim.js --outfile=public/app.bundle.js",
+    "dev": "node --watch server.mjs",
+    "start": "npm run build && node phone.mjs",
+    "start:local": "npm run build && node server.mjs",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "cloudflared": "^0.7.1",
+    "onnxruntime-web": "^1.22.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.0"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

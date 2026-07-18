@@ -1,0 +1,35 @@
+import * as ort from 'onnxruntime-web';
+
+const $=s=>document.querySelector(s),video=$('#video'),canvas=$('#canvas'),ctx=canvas.getContext('2d',{willReadFrequently:true});
+const countInput=$('#diceCount'),countValue=$('#countValue');let stream,loopTimer,busy=false,lastRequestId=null,stableKey='',stableFrames=0;
+let classifier=null,classifierLoading=null;
+const cropCanvas=document.createElement('canvas'),cropCtx=cropCanvas.getContext('2d',{willReadFrequently:true});cropCanvas.width=28;cropCanvas.height=28;
+
+async function loadClassifier(){
+  if(classifier)return classifier;if(classifierLoading)return classifierLoading;
+  $('#cameraStatus').textContent='↓ CNN…';
+  ort.env.wasm.wasmPaths='https://cdn.jsdelivr.net/npm/onnxruntime-web@1.22.0/dist/';
+  classifierLoading=ort.InferenceSession.create('/models/mnist-12.onnx',{executionProviders:['wasm']})
+    .then(model=>{classifier=model;$('#cameraStatus').textContent='● CNN PRÊT';return model;})
+    .catch(error=>{console.error('CNN MNIST:',error);classifierLoading=null;$('#cameraStatus').textContent='CNN INDISPONIBLE';return null;});
+  return classifierLoading;
+}
+function setCount(n){countInput.value=Math.max(1,Math.min(8,n));countValue.value=countInput.value;countValue.textContent=countInput.value;}
+$('#minus').onclick=()=>setCount(+countInput.value-1);$('#plus').onclick=()=>setCount(+countInput.value+1);
+
+$('#cameraButton').onclick=async()=>{
+  if(stream){stream.getTracks().forEach(t=>t.stop());stream=null;clearTimeout(loopTimer);video.srcObject=null;$('#emptyState').classList.remove('hidden');$('#cameraButton span').textContent='ACTIVER LA CAMÉRA';$('#captureButton').disabled=true;$('#cameraStatus').textContent='CAMÉRA ÉTEINTE';return;}
+  try{stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1280},height:{ideal:720}},audio:false});video.srcObject=stream;await video.play();$('#emptyState').classList.add('hidden');$('#cameraButton span').textContent='COUPER LA CAMÉRA';$('#captureButton').disabled=false;$('#cameraStatus').textContent='↓ CNN…';$('#message').textContent='Chargement du classifieur de chiffres…';loadClassifier();loop();}catch{$('#message').textContent='Accès caméra refusé. HTTPS est obligatoire hors localhost.';}
+};
+
+function components(mask,w,h){const seen=new Uint8Array(mask.length),out=[],stack=[];for(let i=0;i<mask.length;i++){if(!mask[i]||seen[i])continue;let area=0,minX=w,minY=h,maxX=0,maxY=0;stack.push(i);seen[i]=1;while(stack.length){const at=stack.pop(),x=at%w,y=at/w|0;area++;minX=Math.min(minX,x);maxX=Math.max(maxX,x);minY=Math.min(minY,y);maxY=Math.max(maxY,y);for(const n of[at-1,at+1,at-w,at+w])if(n>=0&&n<mask.length&&!seen[n]&&mask[n]&&Math.abs(n%w-x)<=1){seen[n]=1;stack.push(n);}}out.push({area,minX,minY,maxX,maxY,cx:(minX+maxX)/2,cy:(minY+maxY)/2});}return out;}
+function detectContrastZones(image){const{data,width:w,height:h}=image,mask=new Uint8Array(w*h);let mean=0;for(let i=0;i<data.length;i+=4)mean+=(data[i]+data[i+1]+data[i+2])/3;mean/=w*h;const threshold=Math.min(125,mean*.62);for(let i=0,p=0;i<data.length;i+=4,p++){const lum=.299*data[i]+.587*data[i+1]+.114*data[i+2];mask[p]=lum<threshold?1:0;}const minSide=Math.max(28,w*.055),maxSide=w*.48;return components(mask,w,h).filter(c=>{const bw=c.maxX-c.minX+1,bh=c.maxY-c.minY+1,ratio=bw/bh,fill=c.area/(bw*bh);return bw>minSide&&bh>minSide&&bw<maxSide&&bh<maxSide&&ratio>.68&&ratio<1.47&&fill>.32;}).sort((a,b)=>a.cx-b.cx);}
+function softmax(values){const max=Math.max(...values),exps=values.map(v=>Math.exp(v-max)),sum=exps.reduce((a,b)=>a+b,0);return exps.map(v=>v/sum);}
+async function classifyZones(zones){const model=await loadClassifier();if(!model)return[];const results=[];for(const zone of zones){const bw=zone.maxX-zone.minX+1,bh=zone.maxY-zone.minY+1,inset=Math.round(Math.min(bw,bh)*.07);cropCtx.fillStyle='black';cropCtx.fillRect(0,0,28,28);cropCtx.drawImage(canvas,zone.minX+inset,zone.minY+inset,bw-2*inset,bh-2*inset,2,2,24,24);const pixels=cropCtx.getImageData(0,0,28,28).data,input=new Float32Array(784);for(let i=0;i<784;i++){const p=i*4,lum=(.299*pixels[p]+.587*pixels[p+1]+.114*pixels[p+2])/255;input[i]=lum>.52?1:0;}const tensor=new ort.Tensor('float32',input,[1,1,28,28]),output=await model.run({[model.inputNames[0]]:tensor}),scores=softmax(Array.from(output[model.outputNames[0]].data)),value=scores.indexOf(Math.max(...scores)),confidence=scores[value];if(value>=1&&value<=6&&confidence>.42)results.push({...zone,value,confidence});}return results;}
+function jpegBlob(){return new Promise(resolve=>canvas.toBlob(resolve,'image/jpeg',.62));}
+function renderZones(zones){ctx.lineWidth=3;ctx.strokeStyle='#eaff45';ctx.fillStyle='#eaff45';ctx.font='bold 18px monospace';zones.forEach(z=>{ctx.strokeRect(z.minX,z.minY,z.maxX-z.minX,z.maxY-z.minY);ctx.fillText(`${z.value} ${Math.round(z.confidence*100)}%`,z.minX+4,z.minY+21);});}
+async function loop(){if(!stream)return;try{if(!busy&&video.videoWidth){busy=true;const w=480,h=Math.round(w*video.videoHeight/video.videoWidth);canvas.width=w;canvas.height=h;ctx.drawImage(video,0,0,w,h);let pending=null;try{const r=await fetch('/api/roll/pending',{cache:'no-store'});pending=(await r.json()).request;}catch{}
+      if(pending){setCount(pending.count);const candidates=detectContrastZones(ctx.getImageData(0,0,w,h)),classified=await classifyZones(candidates),values=classified.map(z=>z.value),key=values.join(',');renderZones(classified);$('#message').textContent=`Demande : ${pending.count} dé(s) · carrés ${candidates.length} · classés ${values.length}`;if(lastRequestId!==pending.id){lastRequestId=pending.id;stableKey='';stableFrames=0;}if(values.length===pending.count&&key===stableKey)stableFrames++;else{stableKey=key;stableFrames=values.length===pending.count?1:0;}if(stableFrames>=3){const r=await fetch('/api/roll/complete',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({requestId:pending.id,values})});if(r.ok){const roll=await r.json();renderResult(roll);$('#message').textContent='Tirage envoyé. En attente de la prochaine requête…';stableFrames=0;}}}else{$('#message').textContent=classifier?'Flux publié. CNN prêt, en attente d’une requête API…':'Chargement du CNN…';stableFrames=0;lastRequestId=null;}
+      const blob=await jpegBlob();if(blob)fetch('/api/stream/frame',{method:'POST',headers:{'content-type':'image/jpeg'},body:blob}).catch(()=>{});busy=false;}}catch{busy=false;}loopTimer=setTimeout(loop,700);}
+function renderResult(roll){$('#resultDice').innerHTML=roll.values.map(v=>`<span class="result-die">${v}</span>`).join('');$('#jsonOutput').textContent=JSON.stringify(roll.values);$('#resultMeta').textContent=`${roll.values.length} dé(s) · ${new Date(roll.capturedAt).toLocaleTimeString('fr-FR')}`;$('#copyButton').disabled=false;}
+$('#copyButton').onclick=async()=>{await navigator.clipboard.writeText($('#jsonOutput').textContent);$('#copyButton').textContent='COPIÉ';setTimeout(()=>$('#copyButton').textContent='COPIER',1200);};
