@@ -17,6 +17,7 @@ const ginsePublicKey = createPublicKey({ key: {
 let latestRoll = null;
 let latestFrame = null;
 let frameCapturedAt = 0;
+let latestCropDebug = [];
 
 const mime = { '.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.json':'application/json; charset=utf-8' };
 
@@ -149,6 +150,10 @@ export const server=createServer(async(req,res)=>{
   if(url.pathname==='/api/stream/latest.jpg'&&req.method==='GET'){
     if(!latestFrame)return json(res,404,{error:'Téléphone hors ligne'});
     res.writeHead(200,{'content-type':'image/jpeg','cache-control':'no-store','access-control-allow-origin':'*','x-frame-age':String(Date.now()-frameCapturedAt)});return res.end(latestFrame);
+  }
+  if(url.pathname==='/api/debug/crops'&&req.method==='GET')return json(res,200,{crops:latestCropDebug});
+  if(url.pathname==='/api/debug/crops'&&req.method==='POST'){
+    try{const body=await jsonBody(req);latestCropDebug=Array.isArray(body.crops)?body.crops.slice(0,8):[];return json(res,200,{ok:true});}catch(error){return json(res,400,{error:error.message});}
   }
   return serveFile(req,res);
 });
