@@ -8,11 +8,12 @@
     "dev": "node --watch server.mjs",
     "start": "npm run build && node phone.mjs",
     "start:local": "npm run build && node server.mjs",
+    "throw": "node agent.mjs",
     "test": "node --test"
   },
   "dependencies": {
     "cloudflared": "^0.7.1",
-    "onnxruntime-web": "^1.22.0"
+    "onnxruntime-web": "^1.27.0"
   },
   "devDependencies": {
     "esbuild": "^0.25.0"

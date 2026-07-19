@@ -1,6 +1,7 @@
 import { networkInterfaces } from 'node:os';
 import { Tunnel } from 'cloudflared';
 import { server } from './server.mjs';
+import { sendDiscordNotification } from './scripts/discord.mjs';
 
 const preferredPort=Number(process.env.PORT||3000);
 const addresses=[];
@@ -29,6 +30,12 @@ async function launch(port){
     console.log(url);
     console.log('═══════════════════════════════════════════════════════');
     console.log(`\nRégie live : ${url}/watch.html`);
+    try{await sendDiscordNotification(url);}catch(error){
+      console.error(`Discord : notification impossible (${error.message}).`);
+      console.log(`SERVICE_ERROR ${JSON.stringify({error:error.message})}`);
+      return;
+    }
+    console.log(`SERVICE_READY ${JSON.stringify({port,url})}`);
     console.log('Garde ce terminal ouvert pendant la démo.\n');
     tunnel.on('exit',()=>console.log('Le tunnel téléphone a été fermé.'));
   }catch(error){
